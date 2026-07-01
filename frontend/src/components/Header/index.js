@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import { Home } from "../../assets/Home.svg";
+import Home from "../../assets/Home.svg";
 
 import Logo from "../Logo";
 
