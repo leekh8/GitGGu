@@ -10,14 +10,13 @@ Dressing up a GitHub profile or repo README means hand-assembling capsule-render
 
 ## Status
 
-🔵 **Prototype** — frontend-first. Last active 2024-11.
-The React editor UI (Editor / MainPage / Header / Logo components) is in place; the backend / persistence layer below is planned, not yet wired.
+🔵 **Prototype** — frontend-first. The React editor with **live Markdown preview**, a widget gallery (banners / badges / stat cards), and copy-to-clipboard is working; the backend / persistence layer below is planned, not yet wired.
 
 ## Stack
 
 **Implemented (`frontend/`)**
 - React 18, React Router 6, styled-components
-- create-react-app (react-scripts), Jest + Testing Library
+- **Vite 5** (migrated from CRA on 2026-07-13), Vitest + Testing Library
 
 **Planned**
 - Backend: Node.js · Express · GraphQL
@@ -34,10 +33,18 @@ docs/        design notes
 
 ## Roadmap
 
-- [ ] Live Markdown preview alongside the editor
-- [ ] Template / widget gallery (capsule-render banners, shields badges, stat cards)
-- [ ] Copy-to-clipboard / export of the generated Markdown
+- [x] Live Markdown preview alongside the editor
+- [x] Template / widget gallery (capsule-render banners, shields badges, stat cards)
+- [x] Copy-to-clipboard of the generated Markdown
+- [ ] Export / download the generated Markdown as a file
 - [ ] Wire the planned backend for saving & sharing layouts
+
+## Changelog
+
+### 2026-07-13 — CRA → Vite 현대화
+- 빌드/개발 서버 `react-scripts` → **Vite 5**, 테스트 러너 → **Vitest**
+- JSX 포함 파일 9개를 `.jsx`로 정리, `public/index.html` → 루트 `index.html`, `reportWebVitals`·`web-vitals` 제거
+- README 상태 동기화(라이브 프리뷰·위젯·복사는 이미 구현됨). 검증: 빌드·테스트 통과 + dev 서버 라이브 렌더 확인
 
 ---
 ![footer](https://capsule-render.vercel.app/api?type=waving&color=auto&height=120&section=footer)
