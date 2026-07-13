@@ -10,7 +10,7 @@ Dressing up a GitHub profile or repo README means hand-assembling capsule-render
 
 ## Status
 
-🔵 **Prototype** — frontend-first. The React editor with **live Markdown preview**, a widget gallery (banners / badges / stat cards), and copy-to-clipboard is working; the backend / persistence layer below is planned, not yet wired.
+🔵 **Prototype** — frontend-first. The React editor is functional: **live Markdown preview**, a widget gallery (banners / badges / stat cards), **cursor-aware formatting** (wrap selection / insert at caret), **localStorage autosave**, a **GitHub-username field** that auto-fills `YOUR_ID`/`YOUR_NAME` in inserted widgets, plus **copy** and **download (.md)**. The backend / persistence layer below is planned, not yet wired.
 
 ## Stack
 
@@ -36,10 +36,20 @@ docs/        design notes
 - [x] Live Markdown preview alongside the editor
 - [x] Template / widget gallery (capsule-render banners, shields badges, stat cards)
 - [x] Copy-to-clipboard of the generated Markdown
-- [ ] Export / download the generated Markdown as a file
+- [x] Export / download the generated Markdown as a file
+- [x] Cursor-aware formatting (wrap selection / insert at caret) + autosave + username auto-fill
 - [ ] Wire the planned backend for saving & sharing layouts
+- [ ] Dark-mode preview (GitHub dark theme)
 
 ## Changelog
+
+### 2026-07-13 — 에디터 UX 개선 + dead code 정리
+- **커서 인식 서식**: 툴바 버튼이 항상 문서 끝에 붙던 것 → 선택 영역 감싸기(B/I/코드/링크) + 커서 위치 블록 삽입(H1/H2/목록/위젯)
+- **자동저장**: localStorage에 초안·아이디 저장 → 새로고침해도 유지
+- **GitHub 아이디 필드**: 입력 시 위젯의 `YOUR_ID`/`YOUR_NAME` 자동 치환
+- **다운로드(.md)** 버튼 + 버튼 `:focus-visible` 접근성
+- 미사용 컴포넌트 4개(Header/Footer/Logo/MainPage) 제거 — App은 Editor만 렌더
+- 검증: dev 서버 라이브 — 선택 감싸기·아이디 치환·다운로드·자동저장 4/4 PASS, 빌드 통과
 
 ### 2026-07-13 — CRA → Vite 현대화
 - 빌드/개발 서버 `react-scripts` → **Vite 5**, 테스트 러너 → **Vitest**

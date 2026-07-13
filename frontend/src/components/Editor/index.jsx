@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
 import { markdownToHtml } from "../../utils/markdown";
 
-// GitHub 프로필 꾸미기용 데코 위젯 스니펫 (버튼 클릭 시 에디터에 삽입)
+// GitHub 프로필 꾸미기용 데코 위젯 스니펫 (버튼 클릭 시 커서 위치에 삽입)
 const WIDGETS = [
   {
     label: "🌊 배너",
@@ -26,14 +26,15 @@ const WIDGETS = [
   },
 ];
 
-// 기본 마크다운 서식
+// 기본 서식 — wrap: 선택 감싸기 [before, after, placeholder] / block: 새 줄 삽입
 const FORMATS = [
-  { label: "H1", md: "# 제목" },
-  { label: "B", md: "**굵게**" },
-  { label: "I", md: "*기울임*" },
-  { label: "‹›", md: "`코드`" },
-  { label: "• 목록", md: "- 항목" },
-  { label: "🔗", md: "[텍스트](https://)" },
+  { label: "H1", block: "# 제목" },
+  { label: "H2", block: "## 제목" },
+  { label: "B", wrap: ["**", "**", "굵게"] },
+  { label: "I", wrap: ["*", "*", "기울임"] },
+  { label: "‹›", wrap: ["`", "`", "코드"] },
+  { label: "• 목록", block: "- 항목" },
+  { label: "🔗", wrap: ["[", "](https://)", "텍스트"] },
 ];
 
 const DEFAULT_MD = `# 👋 Hi, I'm YOUR_NAME
@@ -50,12 +51,55 @@ const DEFAULT_MD = `# 👋 Hi, I'm YOUR_NAME
 ![Stats](https://github-readme-stats.vercel.app/api?username=YOUR_ID&show_icons=true)
 `;
 
-export default function Editor() {
-  const [md, setMd] = useState(DEFAULT_MD);
-  const [copied, setCopied] = useState(false);
+const MD_KEY = "gitggu-markdown";
+const USER_KEY = "gitggu-user";
 
-  const insert = (snippet) =>
-    setMd((m) => (m === "" || m.endsWith("\n") ? m : m + "\n") + snippet + "\n");
+export default function Editor() {
+  const [md, setMd] = useState(() => localStorage.getItem(MD_KEY) ?? DEFAULT_MD);
+  const [user, setUser] = useState(() => localStorage.getItem(USER_KEY) ?? "");
+  const [copied, setCopied] = useState(false);
+  const taRef = useRef(null);
+
+  // 자동 저장 (새로고침해도 유지)
+  useEffect(() => localStorage.setItem(MD_KEY, md), [md]);
+  useEffect(() => localStorage.setItem(USER_KEY, user), [user]);
+
+  // GitHub 아이디가 있으면 위젯의 YOUR_ID/YOUR_NAME 자동 치환
+  const fillUser = (s) =>
+    user ? s.replaceAll("YOUR_ID", user).replaceAll("YOUR_NAME", user) : s;
+
+  // 커서 위치에 블록 삽입 (앞뒤 줄바꿈 보정)
+  const insertBlock = (snippet) => {
+    const ta = taRef.current;
+    const pos = ta ? ta.selectionStart : md.length;
+    const before = md.slice(0, pos);
+    const after = md.slice(pos);
+    const lead = before && !before.endsWith("\n") ? "\n" : "";
+    const tail = after.startsWith("\n") || after === "" ? "" : "\n";
+    const chunk = lead + snippet + "\n" + tail;
+    const next = before + chunk + after;
+    setMd(next);
+    const caret = (before + chunk).length;
+    requestAnimationFrame(() => {
+      ta?.focus();
+      ta?.setSelectionRange(caret, caret);
+    });
+  };
+
+  // 선택 영역을 마커로 감싸기 (없으면 placeholder 삽입 후 선택)
+  const applyWrap = (beforeM, afterM, placeholder) => {
+    const ta = taRef.current;
+    const s = ta ? ta.selectionStart : md.length;
+    const e = ta ? ta.selectionEnd : md.length;
+    const selected = md.slice(s, e) || placeholder;
+    const next = md.slice(0, s) + beforeM + selected + afterM + md.slice(e);
+    setMd(next);
+    const selStart = s + beforeM.length;
+    requestAnimationFrame(() => {
+      ta?.focus();
+      ta?.setSelectionRange(selStart, selStart + selected.length);
+    });
+  };
 
   const copy = async () => {
     try {
@@ -67,17 +111,42 @@ export default function Editor() {
     }
   };
 
+  const download = () => {
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "README.md";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Wrap>
       <TitleBar>
         <h1>GitGGu</h1>
         <span>GitHub 프로필·README 꾸미기 에디터</span>
+        <UserField>
+          <span>@</span>
+          <input
+            value={user}
+            onChange={(e) => setUser(e.target.value.trim())}
+            placeholder="GitHub 아이디"
+            aria-label="GitHub username"
+            spellCheck={false}
+          />
+        </UserField>
       </TitleBar>
 
       <Toolbar>
         <Group>
           {FORMATS.map((f) => (
-            <Btn key={f.label} onClick={() => insert(f.md)}>
+            <Btn
+              key={f.label}
+              onClick={() =>
+                f.wrap ? applyWrap(...f.wrap) : insertBlock(f.block)
+              }
+            >
               {f.label}
             </Btn>
           ))}
@@ -85,16 +154,22 @@ export default function Editor() {
         <Divider />
         <Group>
           {WIDGETS.map((w) => (
-            <Btn key={w.label} onClick={() => insert(w.md)}>
+            <Btn key={w.label} onClick={() => insertBlock(fillUser(w.md))}>
               {w.label}
             </Btn>
           ))}
         </Group>
-        <CopyBtn onClick={copy}>{copied ? "복사됨 ✓" : "📋 마크다운 복사"}</CopyBtn>
+        <Right>
+          <Btn onClick={download} title="README.md 파일로 저장">
+            ⬇ 다운로드
+          </Btn>
+          <CopyBtn onClick={copy}>{copied ? "복사됨 ✓" : "📋 마크다운 복사"}</CopyBtn>
+        </Right>
       </Toolbar>
 
       <Panes>
         <EditArea
+          ref={taRef}
           value={md}
           onChange={(e) => setMd(e.target.value)}
           spellCheck={false}
@@ -120,6 +195,7 @@ const Wrap = styled.div`
 const TitleBar = styled.header`
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 16px;
   h1 {
@@ -130,6 +206,31 @@ const TitleBar = styled.header`
   span {
     color: #656d76;
     font-size: 14px;
+  }
+`;
+
+const UserField = styled.label`
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: #fff;
+  span {
+    color: #656d76;
+    font-weight: 600;
+  }
+  input {
+    border: none;
+    outline: none;
+    font-size: 13px;
+    width: 110px;
+  }
+  &:focus-within {
+    border-color: #0969da;
+    box-shadow: 0 0 0 2px #0969da33;
   }
 `;
 
@@ -145,6 +246,12 @@ const Toolbar = styled.div`
 `;
 
 const Group = styled.div`
+  display: flex;
+  gap: 4px;
+`;
+
+const Right = styled.div`
+  margin-left: auto;
   display: flex;
   gap: 4px;
 `;
@@ -166,10 +273,13 @@ const Btn = styled.button`
   &:hover {
     background: #eaeef2;
   }
+  &:focus-visible {
+    outline: 2px solid #0969da;
+    outline-offset: 1px;
+  }
 `;
 
 const CopyBtn = styled(Btn)`
-  margin-left: auto;
   background: #1f883d;
   color: #fff;
   border-color: #1a7f37;
@@ -201,6 +311,9 @@ const EditArea = styled.textarea`
   line-height: 1.6;
   resize: none;
   outline: none;
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px #0969da33;
+  }
   @media (max-width: 720px) {
     border-right: none;
     border-bottom: 1px solid #d0d7de;
