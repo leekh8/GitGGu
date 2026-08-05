@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import styled from "styled-components";
 import { markdownToHtml } from "../../utils/markdown";
 
-// GitHub 프로필 꾸미기용 데코 위젯 스니펫 (버튼 클릭 시 커서 위치에 삽입)
 const WIDGETS = [
   {
     label: "🌊 배너",
@@ -14,7 +13,7 @@ const WIDGETS = [
   },
   {
     label: "📊 Stats",
-    md: "![Stats](https://github-readme-stats.vercel.app/api?username=YOUR_ID&show_icons=true)",
+    md: "![Stats](https://github-readme-stats.vercel.app/api?username=YOUR_ID&show_icons=true&theme=default)",
   },
   {
     label: "🔥 Streak",
@@ -24,9 +23,16 @@ const WIDGETS = [
     label: "🧑‍💻 Top Langs",
     md: "![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=YOUR_ID&layout=compact)",
   },
+  {
+    label: "📈 Activity",
+    md: "![Activity](https://github-readme-activity-graph.vercel.app/graph?username=YOUR_ID&theme=github-compact)",
+  },
+  {
+    label: "🏆 Trophies",
+    md: "![Trophies](https://github-profile-trophy.vercel.app/?username=YOUR_ID&row=1)",
+  },
 ];
 
-// 기본 서식 — wrap: 선택 감싸기 [before, after, placeholder] / block: 새 줄 삽입
 const FORMATS = [
   { label: "H1", block: "# 제목" },
   { label: "H2", block: "## 제목" },
@@ -35,6 +41,13 @@ const FORMATS = [
   { label: "‹›", wrap: ["`", "`", "코드"] },
   { label: "• 목록", block: "- 항목" },
   { label: "🔗", wrap: ["[", "](https://)", "텍스트"] },
+];
+
+const SECTIONS = [
+  { label: "🧑 About", block: "## 🙋 About Me\n\n> 한 줄 소개를 작성하세요.\n\n- 🔭 현재 작업 중: **PROJECT**\n- 🌱 배우는 중: **SKILL**\n- 📫 연락처: **EMAIL**" },
+  { label: "🛠 Stack", block: "## 🛠 Tech Stack\n\n![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)\n![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)\n![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)" },
+  { label: "📌 Projects", block: "## 📌 Projects\n\n| 이름 | 설명 | 기술 |\n|---|---|---|\n| [PROJECT](https://github.com/YOUR_ID/PROJECT) | 설명 | React |\n" },
+  { label: "📝 Blog", block: "## 📝 Latest Blog Posts\n\n<!-- BLOG-POST-LIST:START -->\n<!-- BLOG-POST-LIST:END -->" },
 ];
 
 const DEFAULT_MD = `# 👋 Hi, I'm YOUR_NAME
@@ -58,17 +71,15 @@ export default function Editor() {
   const [md, setMd] = useState(() => localStorage.getItem(MD_KEY) ?? DEFAULT_MD);
   const [user, setUser] = useState(() => localStorage.getItem(USER_KEY) ?? "");
   const [copied, setCopied] = useState(false);
+  const [tab, setTab] = useState("edit"); // "edit" | "preview" (모바일 전용)
   const taRef = useRef(null);
 
-  // 자동 저장 (새로고침해도 유지)
   useEffect(() => localStorage.setItem(MD_KEY, md), [md]);
   useEffect(() => localStorage.setItem(USER_KEY, user), [user]);
 
-  // GitHub 아이디가 있으면 위젯의 YOUR_ID/YOUR_NAME 자동 치환
   const fillUser = (s) =>
     user ? s.replaceAll("YOUR_ID", user).replaceAll("YOUR_NAME", user) : s;
 
-  // 커서 위치에 블록 삽입 (앞뒤 줄바꿈 보정)
   const insertBlock = (snippet) => {
     const ta = taRef.current;
     const pos = ta ? ta.selectionStart : md.length;
@@ -86,7 +97,6 @@ export default function Editor() {
     });
   };
 
-  // 선택 영역을 마커로 감싸기 (없으면 placeholder 삽입 후 선택)
   const applyWrap = (beforeM, afterM, placeholder) => {
     const ta = taRef.current;
     const s = ta ? ta.selectionStart : md.length;
@@ -101,14 +111,39 @@ export default function Editor() {
     });
   };
 
+  // Tab 키 → 들여쓰기(공백 2개), Shift+Tab → 줄 앞 공백 제거
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key !== "Tab") return;
+      e.preventDefault();
+      const ta = e.target;
+      const s = ta.selectionStart;
+      const e2 = ta.selectionEnd;
+      if (e.shiftKey) {
+        // 앞 공백 2개 제거
+        const lineStart = md.lastIndexOf("\n", s - 1) + 1;
+        const beforeLine = md.slice(0, lineStart);
+        const line = md.slice(lineStart);
+        if (line.startsWith("  ")) {
+          const next = beforeLine + line.slice(2);
+          setMd(next);
+          requestAnimationFrame(() => ta.setSelectionRange(Math.max(s - 2, lineStart), Math.max(e2 - 2, lineStart)));
+        }
+      } else {
+        const next = md.slice(0, s) + "  " + md.slice(e2);
+        setMd(next);
+        requestAnimationFrame(() => ta.setSelectionRange(s + 2, s + 2));
+      }
+    },
+    [md]
+  );
+
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(md);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard 미지원 환경 무시 */
-    }
+    } catch {}
   };
 
   const download = () => {
@@ -121,11 +156,18 @@ export default function Editor() {
     URL.revokeObjectURL(url);
   };
 
+  const reset = () => {
+    if (window.confirm("현재 내용이 사라집니다. 기본 템플릿으로 초기화할까요?")) {
+      const tmpl = fillUser(DEFAULT_MD);
+      setMd(tmpl);
+    }
+  };
+
   return (
     <Wrap>
       <TitleBar>
         <h1>GitGGu</h1>
-        <span>GitHub 프로필·README 꾸미기 에디터</span>
+        <span>GitHub 프로필 · README 에디터</span>
         <UserField>
           <span>@</span>
           <input
@@ -141,48 +183,57 @@ export default function Editor() {
       <Toolbar>
         <Group>
           {FORMATS.map((f) => (
-            <Btn
-              key={f.label}
-              onClick={() =>
-                f.wrap ? applyWrap(...f.wrap) : insertBlock(f.block)
-              }
-            >
+            <Btn key={f.label} onClick={() => f.wrap ? applyWrap(...f.wrap) : insertBlock(f.block)}>
               {f.label}
             </Btn>
           ))}
         </Group>
         <Divider />
-        <Group>
+        <Group style={{ flexWrap: "wrap" }}>
           {WIDGETS.map((w) => (
-            <Btn key={w.label} onClick={() => insertBlock(fillUser(w.md))}>
-              {w.label}
-            </Btn>
+            <Btn key={w.label} onClick={() => insertBlock(fillUser(w.md))}>{w.label}</Btn>
+          ))}
+        </Group>
+        <Divider />
+        <Group>
+          {SECTIONS.map((s) => (
+            <Btn key={s.label} onClick={() => insertBlock(fillUser(s.block))}>{s.label}</Btn>
           ))}
         </Group>
         <Right>
-          <Btn onClick={download} title="README.md 파일로 저장">
-            ⬇ 다운로드
-          </Btn>
-          <CopyBtn onClick={copy}>{copied ? "복사됨 ✓" : "📋 마크다운 복사"}</CopyBtn>
+          <Btn onClick={reset} title="기본 템플릿으로 초기화">↺</Btn>
+          <Btn onClick={download} title="README.md 저장">⬇ 저장</Btn>
+          <CopyBtn onClick={copy}>{copied ? "복사됨 ✓" : "📋 복사"}</CopyBtn>
         </Right>
       </Toolbar>
+
+      {/* 모바일용 탭 */}
+      <TabBar>
+        <TabBtn $active={tab === "edit"} onClick={() => setTab("edit")}>편집</TabBtn>
+        <TabBtn $active={tab === "preview"} onClick={() => setTab("preview")}>미리보기</TabBtn>
+      </TabBar>
 
       <Panes>
         <EditArea
           ref={taRef}
           value={md}
           onChange={(e) => setMd(e.target.value)}
+          onKeyDown={handleKeyDown}
           spellCheck={false}
           aria-label="markdown editor"
+          $hidden={tab === "preview"}
         />
         <Preview
           className="markdown-body"
           dangerouslySetInnerHTML={{ __html: markdownToHtml(md) }}
+          $hidden={tab === "edit"}
         />
       </Panes>
     </Wrap>
   );
 }
+
+/* ── Styled Components ── */
 
 const Wrap = styled.div`
   max-width: 1100px;
@@ -198,15 +249,8 @@ const TitleBar = styled.header`
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 16px;
-  h1 {
-    margin: 0;
-    font-size: 28px;
-    color: #24292f;
-  }
-  span {
-    color: #656d76;
-    font-size: 14px;
-  }
+  h1 { margin: 0; font-size: 28px; color: #24292f; }
+  span { color: #656d76; font-size: 14px; }
 `;
 
 const UserField = styled.label`
@@ -218,20 +262,9 @@ const UserField = styled.label`
   border-radius: 6px;
   padding: 4px 8px;
   background: #fff;
-  span {
-    color: #656d76;
-    font-weight: 600;
-  }
-  input {
-    border: none;
-    outline: none;
-    font-size: 13px;
-    width: 110px;
-  }
-  &:focus-within {
-    border-color: #0969da;
-    box-shadow: 0 0 0 2px #0969da33;
-  }
+  span { color: #656d76; font-weight: 600; }
+  input { border: none; outline: none; font-size: 13px; width: 110px; }
+  &:focus-within { border-color: #0969da; box-shadow: 0 0 0 2px #0969da33; }
 `;
 
 const Toolbar = styled.div`
@@ -245,23 +278,9 @@ const Toolbar = styled.div`
   background: #f6f8fa;
 `;
 
-const Group = styled.div`
-  display: flex;
-  gap: 4px;
-`;
-
-const Right = styled.div`
-  margin-left: auto;
-  display: flex;
-  gap: 4px;
-`;
-
-const Divider = styled.div`
-  width: 1px;
-  align-self: stretch;
-  background: #d0d7de;
-  margin: 0 4px;
-`;
+const Group = styled.div`display: flex; gap: 4px;`;
+const Right = styled.div`margin-left: auto; display: flex; gap: 4px;`;
+const Divider = styled.div`width: 1px; align-self: stretch; background: #d0d7de; margin: 0 4px;`;
 
 const Btn = styled.button`
   border: 1px solid #d0d7de;
@@ -270,36 +289,46 @@ const Btn = styled.button`
   padding: 5px 10px;
   font-size: 13px;
   cursor: pointer;
-  &:hover {
-    background: #eaeef2;
-  }
-  &:focus-visible {
-    outline: 2px solid #0969da;
-    outline-offset: 1px;
-  }
+  white-space: nowrap;
+  &:hover { background: #eaeef2; }
+  &:focus-visible { outline: 2px solid #0969da; outline-offset: 1px; }
 `;
 
 const CopyBtn = styled(Btn)`
-  background: #1f883d;
-  color: #fff;
-  border-color: #1a7f37;
-  font-weight: 600;
-  &:hover {
-    background: #1a7f37;
+  background: #1f883d; color: #fff; border-color: #1a7f37; font-weight: 600;
+  &:hover { background: #1a7f37; }
+`;
+
+const TabBar = styled.div`
+  display: none;
+  @media (max-width: 720px) {
+    display: flex;
+    border: 1px solid #d0d7de;
+    border-top: none;
+    border-bottom: none;
   }
+`;
+
+const TabBtn = styled.button`
+  flex: 1;
+  padding: 8px;
+  border: none;
+  background: ${(p) => (p.$active ? "#fff" : "#f6f8fa")};
+  font-size: 13px;
+  font-weight: ${(p) => (p.$active ? "600" : "normal")};
+  cursor: pointer;
+  border-bottom: 2px solid ${(p) => (p.$active ? "#0969da" : "transparent")};
 `;
 
 const Panes = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: 460px;
+  min-height: 500px;
   border: 1px solid #d0d7de;
   border-top: none;
   border-radius: 0 0 8px 8px;
   overflow: hidden;
-  @media (max-width: 720px) {
-    grid-template-columns: 1fr;
-  }
+  @media (max-width: 720px) { grid-template-columns: 1fr; }
 `;
 
 const EditArea = styled.textarea`
@@ -311,13 +340,11 @@ const EditArea = styled.textarea`
   line-height: 1.6;
   resize: none;
   outline: none;
-  &:focus-visible {
-    box-shadow: inset 0 0 0 2px #0969da33;
-  }
+  &:focus-visible { box-shadow: inset 0 0 0 2px #0969da33; }
   @media (max-width: 720px) {
+    display: ${(p) => (p.$hidden ? "none" : "block")};
     border-right: none;
-    border-bottom: 1px solid #d0d7de;
-    min-height: 240px;
+    min-height: 300px;
   }
 `;
 
@@ -325,37 +352,18 @@ const Preview = styled.div`
   padding: 16px 24px;
   overflow-y: auto;
   line-height: 1.6;
-  h1,
-  h2 {
-    border-bottom: 1px solid #d8dee4;
-    padding-bottom: 0.3em;
-  }
-  img {
-    max-width: 100%;
-  }
-  code {
-    background: #eff1f3;
-    padding: 0.15em 0.35em;
-    border-radius: 6px;
-    font-size: 85%;
-  }
-  pre.cb {
-    background: #f6f8fa;
-    padding: 12px;
-    border-radius: 6px;
-    overflow-x: auto;
-  }
-  pre.cb code {
-    background: none;
-    padding: 0;
-  }
-  blockquote {
-    margin: 0;
-    padding: 0 1em;
-    color: #656d76;
-    border-left: 0.25em solid #d0d7de;
-  }
-  a {
-    color: #0969da;
+  h1, h2 { border-bottom: 1px solid #d8dee4; padding-bottom: 0.3em; }
+  img { max-width: 100%; }
+  code { background: #eff1f3; padding: 0.15em 0.35em; border-radius: 6px; font-size: 85%; }
+  pre.cb { background: #f6f8fa; padding: 12px; border-radius: 6px; overflow-x: auto; }
+  pre.cb code { background: none; padding: 0; }
+  blockquote { margin: 0; padding: 0 1em; color: #656d76; border-left: 0.25em solid #d0d7de; }
+  a { color: #0969da; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #d0d7de; padding: 6px 12px; }
+  th { background: #f6f8fa; font-weight: 600; }
+  @media (max-width: 720px) {
+    display: ${(p) => (p.$hidden ? "none" : "block")};
+    min-height: 300px;
   }
 `;
