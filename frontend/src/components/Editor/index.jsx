@@ -240,7 +240,7 @@ const Wrap = styled.div`
   margin: 0 auto;
   padding: 24px 16px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: #1f2328;
+  color: var(--gh-fg-default);
 `;
 
 const TitleBar = styled.header`
@@ -249,8 +249,8 @@ const TitleBar = styled.header`
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 16px;
-  h1 { margin: 0; font-size: 28px; color: #24292f; }
-  span { color: #656d76; font-size: 14px; }
+  h1 { margin: 0; font-size: 28px; color: var(--gh-fg-emphasis); }
+  span { color: var(--gh-fg-muted); font-size: 14px; }
 `;
 
 const UserField = styled.label`
@@ -258,13 +258,13 @@ const UserField = styled.label`
   display: flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--gh-border-default);
   border-radius: 6px;
   padding: 4px 8px;
-  background: #fff;
-  span { color: #656d76; font-weight: 600; }
+  background: var(--gh-canvas-default);
+  span { color: var(--gh-fg-muted); font-weight: 600; }
   input { border: none; outline: none; font-size: 13px; width: 110px; }
-  &:focus-within { border-color: #0969da; box-shadow: 0 0 0 2px #0969da33; }
+  &:focus-within { border-color: var(--gh-accent-fg); box-shadow: 0 0 0 2px var(--gh-accent-ring); }
 `;
 
 const Toolbar = styled.div`
@@ -273,37 +273,37 @@ const Toolbar = styled.div`
   align-items: center;
   gap: 6px;
   padding: 8px;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--gh-border-default);
   border-radius: 8px 8px 0 0;
-  background: #f6f8fa;
+  background: var(--gh-canvas-subtle);
 `;
 
 const Group = styled.div`display: flex; gap: 4px;`;
 const Right = styled.div`margin-left: auto; display: flex; gap: 4px;`;
-const Divider = styled.div`width: 1px; align-self: stretch; background: #d0d7de; margin: 0 4px;`;
+const Divider = styled.div`width: 1px; align-self: stretch; background: var(--gh-border-default); margin: 0 4px;`;
 
 const Btn = styled.button`
-  border: 1px solid #d0d7de;
-  background: #fff;
+  border: 1px solid var(--gh-border-default);
+  background: var(--gh-canvas-default);
   border-radius: 6px;
   padding: 5px 10px;
   font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
-  &:hover { background: #eaeef2; }
-  &:focus-visible { outline: 2px solid #0969da; outline-offset: 1px; }
+  &:hover { background: var(--gh-canvas-hover); }
+  &:focus-visible { outline: 2px solid var(--gh-accent-fg); outline-offset: 1px; }
 `;
 
 const CopyBtn = styled(Btn)`
-  background: #1f883d; color: #fff; border-color: #1a7f37; font-weight: 600;
-  &:hover { background: #1a7f37; }
+  background: var(--gh-success-emphasis); color: var(--gh-canvas-default); border-color: var(--gh-success-hover); font-weight: 600;
+  &:hover { background: var(--gh-success-hover); }
 `;
 
 const TabBar = styled.div`
   display: none;
   @media (max-width: 720px) {
     display: flex;
-    border: 1px solid #d0d7de;
+    border: 1px solid var(--gh-border-default);
     border-top: none;
     border-bottom: none;
   }
@@ -313,18 +313,18 @@ const TabBtn = styled.button`
   flex: 1;
   padding: 8px;
   border: none;
-  background: ${(p) => (p.$active ? "#fff" : "#f6f8fa")};
+  background: ${(p) => (p.$active ? "var(--gh-canvas-default)" : "var(--gh-canvas-subtle)")};
   font-size: 13px;
   font-weight: ${(p) => (p.$active ? "600" : "normal")};
   cursor: pointer;
-  border-bottom: 2px solid ${(p) => (p.$active ? "#0969da" : "transparent")};
+  border-bottom: 2px solid ${(p) => (p.$active ? "var(--gh-accent-fg)" : "transparent")};
 `;
 
 const Panes = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   min-height: 500px;
-  border: 1px solid #d0d7de;
+  border: 1px solid var(--gh-border-default);
   border-top: none;
   border-radius: 0 0 8px 8px;
   overflow: hidden;
@@ -333,14 +333,14 @@ const Panes = styled.div`
 
 const EditArea = styled.textarea`
   border: none;
-  border-right: 1px solid #d0d7de;
+  border-right: 1px solid var(--gh-border-default);
   padding: 16px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13px;
   line-height: 1.6;
   resize: none;
   outline: none;
-  &:focus-visible { box-shadow: inset 0 0 0 2px #0969da33; }
+  &:focus-visible { box-shadow: inset 0 0 0 2px var(--gh-accent-ring); }
   @media (max-width: 720px) {
     display: ${(p) => (p.$hidden ? "none" : "block")};
     border-right: none;
@@ -352,16 +352,16 @@ const Preview = styled.div`
   padding: 16px 24px;
   overflow-y: auto;
   line-height: 1.6;
-  h1, h2 { border-bottom: 1px solid #d8dee4; padding-bottom: 0.3em; }
+  h1, h2 { border-bottom: 1px solid var(--gh-border-muted); padding-bottom: 0.3em; }
   img { max-width: 100%; }
-  code { background: #eff1f3; padding: 0.15em 0.35em; border-radius: 6px; font-size: 85%; }
-  pre.cb { background: #f6f8fa; padding: 12px; border-radius: 6px; overflow-x: auto; }
+  code { background: var(--gh-canvas-inset); padding: 0.15em 0.35em; border-radius: 6px; font-size: 85%; }
+  pre.cb { background: var(--gh-canvas-subtle); padding: 12px; border-radius: 6px; overflow-x: auto; }
   pre.cb code { background: none; padding: 0; }
-  blockquote { margin: 0; padding: 0 1em; color: #656d76; border-left: 0.25em solid #d0d7de; }
-  a { color: #0969da; }
+  blockquote { margin: 0; padding: 0 1em; color: var(--gh-fg-muted); border-left: 0.25em solid var(--gh-border-default); }
+  a { color: var(--gh-accent-fg); }
   table { border-collapse: collapse; width: 100%; }
-  th, td { border: 1px solid #d0d7de; padding: 6px 12px; }
-  th { background: #f6f8fa; font-weight: 600; }
+  th, td { border: 1px solid var(--gh-border-default); padding: 6px 12px; }
+  th { background: var(--gh-canvas-subtle); font-weight: 600; }
   @media (max-width: 720px) {
     display: ${(p) => (p.$hidden ? "none" : "block")};
     min-height: 300px;
