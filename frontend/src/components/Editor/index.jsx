@@ -5,7 +5,7 @@ import { markdownToHtml } from "../../utils/markdown";
 const WIDGETS = [
   {
     label: "🌊 배너",
-    md: "![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=200&section=header&text=YOUR_NAME&fontSize=70)",
+    md: "![header](https://capsule-render.vercel.app/api?type=waving&color=0:1F6FEB,100:8957E5&height=200&section=header&text=YOUR_NAME&fontSize=70)",
   },
   {
     label: "🏷 배지",
@@ -52,7 +52,7 @@ const SECTIONS = [
 
 const DEFAULT_MD = `# 👋 Hi, I'm YOUR_NAME
 
-![header](https://capsule-render.vercel.app/api?type=waving&color=auto&height=200&section=header&text=YOUR_NAME&fontSize=70)
+![header](https://capsule-render.vercel.app/api?type=waving&color=0:1F6FEB,100:8957E5&height=200&section=header&text=YOUR_NAME&fontSize=70)
 
 ## 🛠 Tech Stack
 
