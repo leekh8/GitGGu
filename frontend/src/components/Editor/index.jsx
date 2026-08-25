@@ -80,6 +80,15 @@ export default function Editor() {
   const fillUser = (s) =>
     user ? s.replaceAll("YOUR_ID", user).replaceAll("YOUR_NAME", user) : s;
 
+  // 아이디를 넣으면 이미 문서에 있는 플레이스홀더도 채운다. 이게 없으면
+  // 아이디를 입력해도 기본 템플릿의 Stats 이미지가 YOUR_ID인 채로 남아
+  // 프리뷰에 깨진 이미지가 계속 보인다.
+  // 타이핑 도중(onChange)에 바꾸면 첫 글자로 굳어버리므로 입력이 끝났을
+  // 때만 적용한다.
+  const applyUserToDoc = () => {
+    if (user) setMd((m) => fillUser(m));
+  };
+
   const insertBlock = (snippet) => {
     const ta = taRef.current;
     const pos = ta ? ta.selectionStart : md.length;
@@ -173,6 +182,8 @@ export default function Editor() {
           <input
             value={user}
             onChange={(e) => setUser(e.target.value.trim())}
+            onBlur={applyUserToDoc}
+            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
             placeholder="GitHub 아이디"
             aria-label="GitHub username"
             spellCheck={false}
